@@ -1,0 +1,5 @@
+{
+  "name": "Gerenciador de Escala de Servidores",
+  "description": "Uma aplicação web para substituir a planilha de controle de escala, permitindo o gerenciamento de presença, folgas, dispensas e outras atividades de servidores ao longo do ano.",
+  "requestFramePermissions": []
+}
