@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { Employee } from '../types';
 import { dateToDayOfYear } from '../utils/dateHelpers';
+import { STATUS_CODES } from '../constants';
 
 interface DailyRosterProps {
   employees: Employee[];
@@ -9,24 +10,32 @@ interface DailyRosterProps {
 
 const DailyRoster: React.FC<DailyRosterProps> = ({ employees, year }) => {
   const today = new Date();
-  // Ensure the date picker doesn't default to a different year
   const initialDate = today.getFullYear() === year ? today : new Date(year, 0, 1);
   const [selectedDate, setSelectedDate] = useState(initialDate.toISOString().split('T')[0]);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const roster = useMemo(() => {
+  const dayOfYear = useMemo(() => {
     const date = new Date(`${selectedDate}T00:00:00`);
-    if (date.getFullYear() !== year) return [];
-    
-    const day = dateToDayOfYear(date);
-    return employees.filter(emp => emp.schedule[day] === 'P');
-  }, [selectedDate, employees, year]);
+    if (date.getFullYear() !== year) return null;
+    return dateToDayOfYear(date);
+  }, [selectedDate, year]);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return [];
+    }
+    const lowercasedQuery = searchQuery.toLowerCase();
+    return employees.filter(emp =>
+      emp.nomeFuncional.toLowerCase().includes(lowercasedQuery)
+    );
+  }, [searchQuery, employees]);
 
   return (
     <div className="bg-escala-dark-surface rounded-lg p-4 mb-6 shadow">
-      <h3 className="text-lg font-semibold text-white mb-3">Efetivo do Dia</h3>
+      <h3 className="text-lg font-semibold text-white mb-3">Consultar Status do Servidor</h3>
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
         <div className="flex items-center gap-2">
-            <label htmlFor="roster-date" className="text-sm text-gray-400">Selecione a data:</label>
+            <label htmlFor="roster-date" className="text-sm text-gray-400">Data:</label>
             <input
               type="date"
               id="roster-date"
@@ -37,21 +46,40 @@ const DailyRoster: React.FC<DailyRosterProps> = ({ employees, year }) => {
               max={`${year}-12-31`}
             />
         </div>
-        <p className="font-bold text-lg text-escala-primary">
-            Total: {roster.length}
-        </p>
+        <div className="flex items-center gap-2 flex-grow w-full">
+          <label htmlFor="search-agent" className="text-sm text-gray-400">Nome:</label>
+          <input
+            type="text"
+            id="search-agent"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Digite para pesquisar o servidor..."
+            className="w-full bg-escala-dark-background border border-gray-600 rounded-md p-2 text-gray-200 focus:ring-2 focus:ring-escala-secondary"
+          />
+        </div>
       </div>
 
-      {roster.length > 0 ? (
-        <ul className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 text-sm">
-          {roster.map(emp => (
-            <li key={emp.id} className="bg-escala-dark-background/50 p-2 rounded-md truncate" title={emp.nomeFuncional}>
-              {emp.nomeFuncional}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-4 text-gray-500">Nenhum servidor presente na data selecionada.</p>
+      {searchQuery.trim() && (
+        <div className="mt-4 pt-4 border-t border-gray-700">
+          {searchResults.length > 0 ? (
+            <ul className="space-y-2 text-sm">
+              {searchResults.map(emp => {
+                const status = dayOfYear ? emp.schedule[dayOfYear] : undefined;
+                const statusInfo = status ? STATUS_CODES[status] : { label: 'Não definido', color: 'text-gray-400', bgColor: 'bg-gray-700' };
+                return (
+                  <li key={emp.id} className="flex items-center justify-between bg-escala-dark-background/50 p-2 rounded-md">
+                    <span className="font-medium">{emp.nomeFuncional}</span>
+                    <span className={`font-semibold px-2 py-1 rounded-md text-xs ${statusInfo.bgColor} ${statusInfo.color}`}>
+                      {statusInfo.label} {status && `(${status})`}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="mt-2 text-gray-500 text-center">Nenhum servidor encontrado com o nome "{searchQuery}".</p>
+          )}
+        </div>
       )}
     </div>
   );
