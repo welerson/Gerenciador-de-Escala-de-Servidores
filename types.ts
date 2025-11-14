@@ -1,11 +1,5 @@
 import type { StatusCode } from './constants';
 
-export interface DailySchedule {
-  status: StatusCode;
-  viatura: string;
-  dobra: string;
-}
-
 export interface Employee {
   id: number;
   cargo: string;
@@ -19,7 +13,7 @@ export interface Employee {
   dobra1Dia: string;
   viaturas: string;
   isActive: boolean;
-  schedule: { [dayOfYear: number]: DailySchedule };
+  schedule: { [dayOfYear: number]: StatusCode };
 }
 
 export type EmployeeData = Omit<Employee, 'id' | 'schedule' | 'isActive'>;

@@ -49,7 +49,7 @@ const ReportsModal: React.FC<ReportsModalProps> = ({ isOpen, onClose, employees,
         }, {} as Record<StatusCode, number>);
 
         daysInPeriod.forEach(day => {
-            const status = employee.schedule[day]?.status;
+            const status = employee.schedule[day];
             if (status) {
                 counts[status]++;
             }

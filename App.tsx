@@ -5,7 +5,8 @@ import YearNavigator from './components/YearNavigator';
 import { usePersonnelData } from './hooks/usePersonnelData';
 import ManagePersonnelModal from './components/ManagePersonnelModal';
 import ReportsModal from './components/ReportsModal';
-import OperationalCalendar from './components/OperationalCalendar';
+import PersonnelTable from './components/PersonnelTable';
+import DailyRoster from './components/DailyRoster';
 
 const App: React.FC = () => {
   const [year, setYear] = useState(new Date().getFullYear());
@@ -14,8 +15,7 @@ const App: React.FC = () => {
     addEmployee, 
     updateEmployee, 
     toggleEmployeeStatus,
-    updateDaySchedule,
-    copyDaySchedule
+    updateSchedule
   } = usePersonnelData(year);
 
   const [isManageModalOpen, setManageModalOpen] = useState(false);
@@ -36,13 +36,13 @@ const App: React.FC = () => {
             <StatusLegend />
           </div>
 
+          <DailyRoster employees={activeEmployees} year={year} />
+
           {activeEmployees.length > 0 ? (
-            <OperationalCalendar
-              key={year} // Re-mount component when year changes
-              employees={activeEmployees}
+            <PersonnelTable
               year={year}
-              onSaveDay={updateDaySchedule}
-              onCopyDay={copyDaySchedule}
+              employees={activeEmployees}
+              onScheduleChange={updateSchedule}
             />
           ) : (
             <div className="text-center py-16 bg-escala-dark-surface rounded-lg mt-6">

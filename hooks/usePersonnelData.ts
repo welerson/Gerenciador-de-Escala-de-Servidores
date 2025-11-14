@@ -1,27 +1,20 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { Employee, EmployeeData, DailySchedule } from '../types';
-import { STATUS_CODES, StatusCode, STATUS_CODE_LIST } from '../constants';
+import type { Employee, EmployeeData } from '../types';
+import { StatusCode } from '../constants';
 
 const PERSONNEL_STORAGE_KEY = 'personnel_data_v1';
 const SCHEDULE_STORAGE_KEY_PREFIX = 'schedule_data_v1';
 
 const isLeap = (year: number) => (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
 
-const generateRandomSchedule = (year: number): { [dayOfYear: number]: DailySchedule } => {
+const generateRandomSchedule = (year: number): { [dayOfYear: number]: StatusCode } => {
   const daysInYear = isLeap(year) ? 366 : 365;
-  const schedule: { [dayOfYear: number]: DailySchedule } = {};
+  const schedule: { [dayOfYear: number]: StatusCode } = {};
   for (let i = 1; i <= daysInYear; i++) {
     const rand = Math.random();
-    let status: StatusCode;
-    if (rand < 0.7) status = 'P';
-    else if (rand < 0.85) status = 'F';
-    else status = 'D';
-
-    schedule[i] = {
-      status,
-      viatura: status === 'P' ? 'VTR-0' + Math.ceil(Math.random() * 4) : '',
-      dobra: ''
-    };
+    if (rand < 0.7) schedule[i] = 'P';
+    else if (rand < 0.85) schedule[i] = 'F';
+    else schedule[i] = 'D';
   }
   return schedule;
 };
@@ -68,25 +61,15 @@ export const usePersonnelData = (year: number) => {
       try {
         const item = window.localStorage.getItem(key);
         if (item) {
-            const parsedSchedule = JSON.parse(item);
-            // Backwards compatibility check: if schedule is just status codes, convert it
-            const firstDay = parsedSchedule['1'];
-            if (typeof firstDay === 'string') {
-                const migratedSchedule: { [day: number]: DailySchedule } = {};
-                Object.keys(parsedSchedule).forEach(day => {
-                    migratedSchedule[parseInt(day)] = {
-                        status: parsedSchedule[day] as StatusCode,
-                        viatura: '',
-                        dobra: ''
-                    }
-                });
-                window.localStorage.setItem(key, JSON.stringify(migratedSchedule));
-                return migratedSchedule;
+            const parsed = JSON.parse(item);
+            // In case of incompatible data from the reverted update, regenerate schedule
+            if (typeof parsed['1'] === 'object' && parsed['1'] !== null) {
+              throw new Error("Incompatible schedule format found.");
             }
-            return parsedSchedule;
+            return parsed;
         }
       } catch (e) {
-        console.error(`Failed to load or migrate schedule for emp ${employeeId}, year ${year}`, e);
+        console.error(`Failed to load schedule for emp ${employeeId}, year ${year}. Regenerating.`, e);
       }
       const newSchedule = generateRandomSchedule(year);
       window.localStorage.setItem(key, JSON.stringify(newSchedule));
@@ -100,36 +83,18 @@ export const usePersonnelData = (year: number) => {
     setEmployees(employeesWithSchedules);
   }, [personnel, year]);
 
-  const updateDaySchedule = useCallback((dayOfYear: number, updates: { employeeId: number, data: DailySchedule }[]) => {
-      setEmployees(currentEmployees => {
-          const updatedEmployees = [...currentEmployees];
-          const employeeMap = new Map(updatedEmployees.map(e => [e.id, e]));
-
-          updates.forEach(({ employeeId, data }) => {
-              const employee = employeeMap.get(employeeId);
-              if (employee) {
-                  const newSchedule = { ...employee.schedule, [dayOfYear]: data };
-                  const key = `${SCHEDULE_STORAGE_KEY_PREFIX}_${employeeId}_${year}`;
-                  window.localStorage.setItem(key, JSON.stringify(newSchedule));
-                  employee.schedule = newSchedule;
-              }
-          });
-          return updatedEmployees;
-      });
-  }, [year]);
-
-  const copyDaySchedule = useCallback((fromDayOfYear: number, toDayOfYear: number) => {
+  const updateSchedule = useCallback((employeeId: number, dayOfYear: number, status: StatusCode) => {
     setEmployees(currentEmployees => {
-      return currentEmployees.map(employee => {
-        const scheduleToCopy = employee.schedule[fromDayOfYear];
-        if (scheduleToCopy) {
-          const newSchedule = { ...employee.schedule, [toDayOfYear]: scheduleToCopy };
-          const key = `${SCHEDULE_STORAGE_KEY_PREFIX}_${employee.id}_${year}`;
+      const updatedEmployees = currentEmployees.map(emp => {
+        if (emp.id === employeeId) {
+          const newSchedule = { ...emp.schedule, [dayOfYear]: status };
+          const key = `${SCHEDULE_STORAGE_KEY_PREFIX}_${employeeId}_${year}`;
           window.localStorage.setItem(key, JSON.stringify(newSchedule));
-          return { ...employee, schedule: newSchedule };
+          return { ...emp, schedule: newSchedule };
         }
-        return employee;
+        return emp;
       });
+      return updatedEmployees;
     });
   }, [year]);
   
@@ -155,5 +120,5 @@ export const usePersonnelData = (year: number) => {
     );
   }, []);
 
-  return { employees, addEmployee, updateEmployee, toggleEmployeeStatus, updateDaySchedule, copyDaySchedule };
+  return { employees, addEmployee, updateEmployee, toggleEmployeeStatus, updateSchedule };
 };

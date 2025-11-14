@@ -18,7 +18,7 @@ const DailyRoster: React.FC<DailyRosterProps> = ({ employees, year }) => {
     if (date.getFullYear() !== year) return [];
     
     const day = dateToDayOfYear(date);
-    return employees.filter(emp => emp.schedule[day]?.status === 'P');
+    return employees.filter(emp => emp.schedule[day] === 'P');
   }, [selectedDate, employees, year]);
 
   return (

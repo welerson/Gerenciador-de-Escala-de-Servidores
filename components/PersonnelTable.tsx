@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import type { Employee, DailySchedule } from '../types';
+import type { Employee } from '../types';
 import { STATUS_CODES, StatusCode, STATUS_CODE_LIST } from '../constants';
 
 interface PersonnelTableProps {
   year: number;
   employees: Employee[];
-  onScheduleChange: (employeeId: number, dayOfYear: number, data: Partial<DailySchedule>) => void;
+  onScheduleChange: (employeeId: number, dayOfYear: number, status: StatusCode) => void;
 }
 
 interface EditingCell {
@@ -78,7 +78,7 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onSche
 
   const handleStatusSelect = (status: StatusCode) => {
     if (editingCell) {
-      onScheduleChange(editingCell.employeeId, editingCell.dayOfYear, { status });
+      onScheduleChange(editingCell.employeeId, editingCell.dayOfYear, status);
       setEditingCell(null);
     }
   };
@@ -119,8 +119,7 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onSche
         <tbody className="bg-escala-dark-surface/50">
           {employees.map(employee => {
             const summary = STATUS_CODE_LIST.reduce((acc, code) => {
-              // Fix: Explicitly type `s` as DailySchedule because Object.values might not infer it correctly with numeric keys.
-              acc[code] = Object.values(employee.schedule).filter((s: DailySchedule) => s.status === code).length;
+              acc[code] = Object.values(employee.schedule).filter((s: StatusCode) => s === code).length;
               return acc;
             }, {} as Record<StatusCode, number>);
 
@@ -133,7 +132,7 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onSche
                 ))}
 
                 {dayHeaders.map(({ dayOfYear }) => {
-                  const status = employee.schedule[dayOfYear]?.status;
+                  const status = employee.schedule[dayOfYear];
                   const statusInfo = status ? STATUS_CODES[status] : null;
                   const isEditing = editingCell?.employeeId === employee.id && editingCell?.dayOfYear === dayOfYear;
 
