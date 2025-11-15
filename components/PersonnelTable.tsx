@@ -193,7 +193,7 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onSche
                 if (groupHeader) {
                     lastGroup = employee.group;
                     lastProprio = null; // Reset for the new group
-                    inViaturaGroup = employee.group === 'Dobra 1 - Noite';
+                    inViaturaGroup = !!employee.group?.toLowerCase().includes('dobra');
                     if (inViaturaGroup) {
                         specialHeader = (
                              <tr className="bg-escala-secondary">
