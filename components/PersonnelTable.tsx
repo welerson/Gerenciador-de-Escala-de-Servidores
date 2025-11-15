@@ -182,7 +182,7 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onSche
             return employees.map(employee => {
                 const groupHeader = employee.group && employee.group !== lastGroup ? (
                     <tr className="bg-orange-600">
-                        <td colSpan={totalColumns} className="p-2 font-bold text-white tracking-wider text-center text-lg">
+                        <td colSpan={totalColumns} className="p-2 font-bold text-white tracking-wider text-left text-lg">
                             {employee.group}
                         </td>
                     </tr>
@@ -193,11 +193,11 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onSche
                 if (groupHeader) {
                     lastGroup = employee.group;
                     lastProprio = null; // Reset for the new group
-                    inViaturaGroup = employee.group === 'DOBRA 1 NOITE';
+                    inViaturaGroup = employee.group === 'Dobra 1 - Noite';
                     if (inViaturaGroup) {
                         specialHeader = (
                              <tr className="bg-escala-secondary">
-                                <td colSpan={totalColumns} className="p-2 font-bold text-white tracking-wider text-center">
+                                <td colSpan={totalColumns} className="p-2 font-bold text-white tracking-wider text-left">
                                     VIATURAS
                                 </td>
                             </tr>
