@@ -8,8 +8,14 @@ interface PersonnelFormProps {
 }
 
 const getDefaultFormData = (): EmployeeData => ({
+  bm: '',
   nomeFuncional: '',
   cargo: '',
+  rquica: null,
+  escala: '',
+  codigo: '',
+  proprio: '',
+  inicio: '00:00',
   precedencia: 99,
   porteArma: false,
   sinarm: '',
@@ -18,6 +24,7 @@ const getDefaultFormData = (): EmployeeData => ({
   efetivoDiario: 'Sim',
   dobra1Dia: 'Não',
   viaturas: '',
+  group: '',
 });
 
 const InputField: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, ...props }) => (
@@ -64,6 +71,10 @@ const PersonnelForm: React.FC<PersonnelFormProps> = ({ employeeToEdit, onSave, o
   
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+     if (name === 'rquica') {
+        setFormData(prev => ({ ...prev, rquica: value === '' ? null : Number(value) }));
+        return;
+    }
     setFormData(prev => ({
         ...prev,
         [name]: value === '' ? '' : Number(value),
@@ -80,7 +91,14 @@ const PersonnelForm: React.FC<PersonnelFormProps> = ({ employeeToEdit, onSave, o
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <InputField label="Nome Funcional" name="nomeFuncional" value={formData.nomeFuncional} onChange={handleChange} required />
         <InputField label="Cargo" name="cargo" value={formData.cargo} onChange={handleChange} required />
-        <InputField label="Precedência Hierárquica" name="precedencia" type="number" value={formData.precedencia} onChange={handleNumberChange} required />
+        <InputField label="BM" name="bm" value={formData.bm} onChange={handleChange} required />
+        <InputField label="Precedência" name="precedencia" type="number" value={formData.precedencia} onChange={handleNumberChange} required />
+        <InputField label="RQUICA" name="rquica" type="number" value={formData.rquica || ''} onChange={handleNumberChange} />
+        <InputField label="Escala" name="escala" value={formData.escala} onChange={handleChange} required />
+        <InputField label="Código" name="codigo" value={formData.codigo} onChange={handleChange} required />
+        <InputField label="Início" name="inicio" value={formData.inicio} onChange={handleChange} required />
+        <InputField label="Próprio" name="proprio" value={formData.proprio} onChange={handleChange} required />
+        <InputField label="Grupo / Dobra" name="group" value={formData.group || ''} onChange={handleChange} />
         <InputField label="Viaturas" name="viaturas" value={formData.viaturas || ''} onChange={handleChange} />
         <InputField label="Efetivo Diário" name="efetivoDiario" value={formData.efetivoDiario || ''} onChange={handleChange} />
         <InputField label="Dobra 1 Dia" name="dobra1Dia" value={formData.dobra1Dia || ''} onChange={handleChange} />

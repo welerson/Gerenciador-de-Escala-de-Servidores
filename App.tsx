@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Header from './components/Header';
 import StatusLegend from './components/StatusLegend';
 import YearNavigator from './components/YearNavigator';
@@ -10,6 +10,13 @@ import DailyRoster from './components/DailyRoster';
 
 const App: React.FC = () => {
   const [year, setYear] = useState(new Date().getFullYear());
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    return today.getFullYear() === new Date().getFullYear() 
+      ? today.toISOString().split('T')[0]
+      : `${new Date().getFullYear()}-01-01`;
+  });
+
   const { 
     employees, 
     addEmployee, 
@@ -22,6 +29,18 @@ const App: React.FC = () => {
   const [isReportsModalOpen, setReportsModalOpen] = useState(false);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.isActive), [employees]);
+
+  useEffect(() => {
+    const currentDate = new Date(`${selectedDate}T00:00:00`);
+    if (currentDate.getFullYear() !== year) {
+      const today = new Date();
+      if (today.getFullYear() === year) {
+        setSelectedDate(today.toISOString().split('T')[0]);
+      } else {
+        setSelectedDate(`${year}-01-01`);
+      }
+    }
+  }, [year, selectedDate]);
 
   return (
     <div className="min-h-screen bg-escala-dark-background font-sans flex flex-col">
@@ -36,13 +55,19 @@ const App: React.FC = () => {
             <StatusLegend />
           </div>
 
-          <DailyRoster employees={activeEmployees} year={year} />
+          <DailyRoster 
+            employees={activeEmployees} 
+            year={year}
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+          />
 
           {activeEmployees.length > 0 ? (
             <PersonnelTable
               year={year}
               employees={activeEmployees}
               onScheduleChange={updateSchedule}
+              scrollToDate={selectedDate ? new Date(`${selectedDate}T00:00:00`) : null}
             />
           ) : (
             <div className="text-center py-16 bg-escala-dark-surface rounded-lg mt-6">

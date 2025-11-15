@@ -1,11 +1,13 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { Employee } from '../types';
 import { STATUS_CODES, StatusCode, STATUS_CODE_LIST } from '../constants';
+import { dateToDayOfYear } from '../utils/dateHelpers';
 
 interface PersonnelTableProps {
   year: number;
   employees: Employee[];
   onScheduleChange: (employeeId: number, dayOfYear: number, status: StatusCode) => void;
+  scrollToDate: Date | null;
 }
 
 interface EditingCell {
@@ -67,11 +69,34 @@ const StatusPicker: React.FC<StatusPickerProps> = ({ onSelect, onClose }) => {
 };
 
 
-const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onScheduleChange }) => {
+const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onScheduleChange, scrollToDate }) => {
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   const dayHeaders = useMemo(() => getDayHeaders(year), [year]);
   
+  useEffect(() => {
+    if (scrollToDate && scrollContainerRef.current && scrollToDate.getFullYear() === year) {
+        const dayOfYear = dateToDayOfYear(scrollToDate);
+        const headerCell = scrollContainerRef.current.querySelector(`th[data-day-of-year='${dayOfYear}']`);
+
+        if (headerCell instanceof HTMLElement) {
+            const secondStickyHeader = scrollContainerRef.current.querySelector('th.sticky.left-\\[100px\\]');
+            let stickyWidthOffset = 250; // A reasonable default
+            if (secondStickyHeader instanceof HTMLElement) {
+                stickyWidthOffset = secondStickyHeader.offsetLeft + secondStickyHeader.offsetWidth;
+            }
+
+            const targetScrollLeft = headerCell.offsetLeft - stickyWidthOffset - 20; // 20px margin
+
+            scrollContainerRef.current.scrollTo({
+                left: targetScrollLeft > 0 ? targetScrollLeft : 0,
+                behavior: 'smooth'
+            });
+        }
+    }
+  }, [scrollToDate, year, employees]);
+
   const handleCellClick = (employeeId: number, dayOfYear: number) => {
     setEditingCell({ employeeId, dayOfYear });
   };
@@ -84,17 +109,25 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onSche
   };
 
   const employeeInfoHeaders = [
-    { key: 'nomeFuncional', label: 'Nome Funcional', sticky: true, className: 'min-w-[150px] sticky left-0' },
+    { key: 'bm', label: 'BM', sticky: true, className: 'min-w-[100px] sticky left-0 z-10' },
+    { key: 'nomeFuncional', label: 'Nome Funcional', sticky: true, className: 'min-w-[150px] sticky left-[100px] z-10' },
     { key: 'cargo', label: 'Cargo', sticky: false, className: 'min-w-[150px]' },
+    { key: 'escala', label: 'Escala', sticky: false, className: 'min-w-[100px]' },
+    { key: 'codigo', label: 'Código', sticky: false, className: 'min-w-[80px]' },
+    { key: 'proprio', label: 'Próprio', sticky: false, className: 'min-w-[300px]' },
+    { key: 'inicio', label: 'Início', sticky: false, className: 'min-w-[80px]' },
     { key: 'porteArma', label: 'Porte', sticky: false, className: 'min-w-[80px]' },
+    { key: 'sinarm', label: 'SINARM', sticky: false, className: 'min-w-[120px]' },
     { key: 'suspensao', label: 'Suspenso', sticky: false, className: 'min-w-[80px]' },
     { key: 'tipoRestricao', label: 'Restrição', sticky: false, className: 'min-w-[120px]' },
   ];
 
   const summaryHeaders = STATUS_CODE_LIST.map(code => ({ key: code, label: code }));
+  
+  const totalColumns = employeeInfoHeaders.length + dayHeaders.length + summaryHeaders.length;
 
   return (
-    <div className="w-full overflow-auto border border-gray-700 rounded-lg bg-escala-dark-surface shadow-lg" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+    <div ref={scrollContainerRef} className="w-full overflow-auto border border-gray-700 rounded-lg bg-escala-dark-surface shadow-lg" style={{ maxHeight: 'calc(100vh - 320px)' }}>
       <table className="min-w-full text-sm text-left border-collapse">
         <thead className="sticky top-0 bg-escala-dark-surface z-20">
           <tr>
@@ -104,7 +137,7 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onSche
               </th>
             ))}
             {dayHeaders.map(({ dayOfYear, label, month }) => (
-              <th key={dayOfYear} scope="col" className="p-0 font-semibold text-center text-gray-400 border-b border-r border-gray-700 w-10">
+              <th key={dayOfYear} scope="col" data-day-of-year={dayOfYear} className="p-0 font-semibold text-center text-gray-400 border-b border-r border-gray-700 w-10">
                 <div className="text-xs pt-1">{month}</div>
                 <div className="text-lg pb-1">{label}</div>
               </th>
@@ -117,52 +150,107 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onSche
           </tr>
         </thead>
         <tbody className="bg-escala-dark-surface/50">
-          {employees.map(employee => {
-            const summary = STATUS_CODE_LIST.reduce((acc, code) => {
-              acc[code] = Object.values(employee.schedule).filter((s: StatusCode) => s === code).length;
-              return acc;
-            }, {} as Record<StatusCode, number>);
+          {(() => {
+            let lastGroup: string | undefined | null = null;
+            let lastProprio: string | null = null;
+            let inViaturaGroup = false;
+            
+            return employees.map(employee => {
+                const groupHeader = employee.group && employee.group !== lastGroup ? (
+                    <tr className="bg-orange-600">
+                        <td colSpan={totalColumns} className="p-2 font-bold text-white tracking-wider text-center text-lg">
+                            {employee.group}
+                        </td>
+                    </tr>
+                ) : null;
 
-            return (
-              <tr key={employee.id} className="hover:bg-escala-dark-surface/80 transition-colors duration-150">
-                {employeeInfoHeaders.map(h => (
-                  <td key={`${employee.id}-${h.key}`} className={`p-3 border-b border-r border-gray-700 ${h.className} ${h.sticky ? 'bg-escala-dark-surface' : ''}`}>
-                    {h.key === 'porteArma' || h.key === 'suspensao' ? (employee[h.key as keyof Employee] ? 'Sim' : 'Não') : (employee[h.key as keyof Employee] || 'N/A')}
-                  </td>
-                ))}
+                let specialHeader = null;
 
-                {dayHeaders.map(({ dayOfYear }) => {
-                  const status = employee.schedule[dayOfYear];
-                  const statusInfo = status ? STATUS_CODES[status] : null;
-                  const isEditing = editingCell?.employeeId === employee.id && editingCell?.dayOfYear === dayOfYear;
+                if (groupHeader) {
+                    lastGroup = employee.group;
+                    lastProprio = null; // Reset for the new group
+                    inViaturaGroup = employee.group === 'DOBRA 1 NOITE';
+                    if (inViaturaGroup) {
+                        specialHeader = (
+                             <tr className="bg-escala-secondary">
+                                <td colSpan={totalColumns} className="p-2 font-bold text-white tracking-wider text-center">
+                                    VIATURAS
+                                </td>
+                            </tr>
+                        );
+                    }
+                } else if (!employee.group && lastGroup) {
+                    lastGroup = null;
+                    inViaturaGroup = false;
+                }
 
-                  return (
-                    <td key={`${employee.id}-${dayOfYear}`} className="p-0 border-b border-r border-gray-700 relative">
-                      <button
-                        onClick={() => handleCellClick(employee.id, dayOfYear)}
-                        className={`w-10 h-12 flex items-center justify-center font-mono font-bold text-center transition-colors ${statusInfo ? `${statusInfo.bgColor} ${statusInfo.color}` : 'hover:bg-gray-700'}`}
-                        aria-label={`Alterar status do dia ${dayOfYear} para ${employee.nomeFuncional}`}
-                      >
-                        {status || ''}
-                      </button>
-                      {isEditing && (
-                        <StatusPicker 
-                           onSelect={handleStatusSelect}
-                           onClose={() => setEditingCell(null)}
-                        />
-                      )}
-                    </td>
-                  );
-                })}
+                const proprioHeader = !inViaturaGroup && employee.proprio !== lastProprio ? (
+                    <tr className="bg-escala-secondary">
+                        <td colSpan={totalColumns} className="p-2 font-bold text-white tracking-wider text-left">
+                            {employee.proprio}
+                        </td>
+                    </tr>
+                ) : null;
 
-                {summaryHeaders.map(h => (
-                    <td key={`summary-${employee.id}-${h.key}`} className="p-3 border-b border-r border-gray-700 font-semibold text-center sticky right-0 bg-escala-dark-surface">
-                        {summary[h.key as StatusCode]}
-                    </td>
-                ))}
-              </tr>
-            );
-          })}
+                if (proprioHeader) {
+                    lastProprio = employee.proprio;
+                }
+
+                const summary = STATUS_CODE_LIST.reduce((acc, code) => {
+                    acc[code] = Object.values(employee.schedule).filter((s: StatusCode) => s === code).length;
+                    return acc;
+                }, {} as Record<StatusCode, number>);
+
+                const employeeRow = (
+                    <tr key={employee.id} className="hover:bg-escala-dark-surface/80 transition-colors duration-150">
+                        {employeeInfoHeaders.map(h => (
+                            <td key={`${employee.id}-${h.key}`} className={`p-3 border-b border-r border-gray-700 ${h.className} ${h.sticky ? 'bg-escala-dark-surface' : ''}`}>
+                                {h.key === 'porteArma' || h.key === 'suspensao' ? (employee[h.key as keyof Employee] ? 'Sim' : 'Não') : (employee[h.key as keyof Employee] || 'N/A')}
+                            </td>
+                        ))}
+
+                        {dayHeaders.map(({ dayOfYear }) => {
+                            const status = employee.schedule[dayOfYear];
+                            const statusInfo = status ? STATUS_CODES[status] : null;
+                            const isEditing = editingCell?.employeeId === employee.id && editingCell?.dayOfYear === dayOfYear;
+
+                            return (
+                                <td key={`${employee.id}-${dayOfYear}`} className="p-0 border-b border-r border-gray-700 relative">
+                                    <button
+                                        onClick={() => handleCellClick(employee.id, dayOfYear)}
+                                        className={`w-10 h-12 flex items-center justify-center font-mono font-bold text-center transition-colors ${statusInfo ? `${statusInfo.bgColor} ${statusInfo.color}` : 'hover:bg-gray-700'}`}
+                                        aria-label={`Alterar status do dia ${dayOfYear} para ${employee.nomeFuncional}`}
+                                    >
+                                        {status || ''}
+                                    </button>
+                                    {isEditing && (
+                                        <StatusPicker
+                                            onSelect={handleStatusSelect}
+                                            onClose={() => setEditingCell(null)}
+                                        />
+                                    )}
+                                </td>
+                            );
+                        })}
+
+                        {summaryHeaders.map(h => (
+                            <td key={`summary-${employee.id}-${h.key}`} className="p-3 border-b border-r border-gray-700 font-semibold text-center sticky right-0 bg-escala-dark-surface">
+                                {summary[h.key as StatusCode]}
+                            </td>
+                        ))}
+                    </tr>
+                );
+
+                return (
+                    <React.Fragment key={`fragment-${employee.id}`}>
+                        {groupHeader}
+                        {specialHeader}
+                        {proprioHeader}
+                        {employeeRow}
+                    </React.Fragment>
+                );
+            });
+          })()}
         </tbody>
       </table>
     </div>

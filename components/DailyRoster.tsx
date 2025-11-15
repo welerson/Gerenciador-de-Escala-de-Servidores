@@ -6,12 +6,11 @@ import { STATUS_CODES } from '../constants';
 interface DailyRosterProps {
   employees: Employee[];
   year: number;
+  selectedDate: string;
+  onDateChange: (date: string) => void;
 }
 
-const DailyRoster: React.FC<DailyRosterProps> = ({ employees, year }) => {
-  const today = new Date();
-  const initialDate = today.getFullYear() === year ? today : new Date(year, 0, 1);
-  const [selectedDate, setSelectedDate] = useState(initialDate.toISOString().split('T')[0]);
+const DailyRoster: React.FC<DailyRosterProps> = ({ employees, year, selectedDate, onDateChange }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const dayOfYear = useMemo(() => {
@@ -30,23 +29,38 @@ const DailyRoster: React.FC<DailyRosterProps> = ({ employees, year }) => {
     );
   }, [searchQuery, employees]);
 
+  const handleGoToToday = () => {
+    const today = new Date();
+    if (today.getFullYear() === year) {
+      onDateChange(today.toISOString().split('T')[0]);
+    } else {
+      onDateChange(`${year}-01-01`);
+    }
+  };
+
   return (
     <div className="bg-escala-dark-surface rounded-lg p-4 mb-6 shadow">
-      <h3 className="text-lg font-semibold text-white mb-3">Consultar Status do Servidor</h3>
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+      <h3 className="text-lg font-semibold text-white mb-3">Consultar Status e Navegar na Tabela</h3>
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center flex-wrap">
         <div className="flex items-center gap-2">
             <label htmlFor="roster-date" className="text-sm text-gray-400">Data:</label>
             <input
               type="date"
               id="roster-date"
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              onChange={(e) => onDateChange(e.target.value)}
               className="bg-escala-dark-background border border-gray-600 rounded-md p-2 text-gray-200 focus:ring-2 focus:ring-escala-secondary"
               min={`${year}-01-01`}
               max={`${year}-12-31`}
             />
         </div>
-        <div className="flex items-center gap-2 flex-grow w-full">
+        <button
+          onClick={handleGoToToday}
+          className="px-4 py-2 bg-escala-primary hover:bg-escala-secondary text-white font-semibold rounded-lg shadow-md transition-colors duration-200 text-sm"
+        >
+          Ir para Hoje
+        </button>
+        <div className="flex items-center gap-2 flex-grow w-full sm:w-auto">
           <label htmlFor="search-agent" className="text-sm text-gray-400">Nome:</label>
           <input
             type="text"
