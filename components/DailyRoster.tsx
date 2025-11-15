@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import type { Employee } from '../types';
 import { dateToDayOfYear } from '../utils/dateHelpers';
 import { STATUS_CODES } from '../constants';
@@ -8,11 +8,20 @@ interface DailyRosterProps {
   year: number;
   selectedDate: string;
   onDateChange: (date: string) => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  onLocateEmployee: (employeeId: number) => void;
 }
 
-const DailyRoster: React.FC<DailyRosterProps> = ({ employees, year, selectedDate, onDateChange }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-
+const DailyRoster: React.FC<DailyRosterProps> = ({ 
+  employees, 
+  year, 
+  selectedDate, 
+  onDateChange,
+  searchQuery,
+  onSearchChange,
+  onLocateEmployee
+}) => {
   const dayOfYear = useMemo(() => {
     const date = new Date(`${selectedDate}T00:00:00`);
     if (date.getFullYear() !== year) return null;
@@ -66,7 +75,7 @@ const DailyRoster: React.FC<DailyRosterProps> = ({ employees, year, selectedDate
             type="text"
             id="search-agent"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Digite para pesquisar o servidor..."
             className="w-full bg-escala-dark-background border border-gray-600 rounded-md p-2 text-gray-200 focus:ring-2 focus:ring-escala-secondary"
           />
@@ -81,7 +90,12 @@ const DailyRoster: React.FC<DailyRosterProps> = ({ employees, year, selectedDate
                 const status = dayOfYear ? emp.schedule[dayOfYear] : undefined;
                 const statusInfo = status ? STATUS_CODES[status] : { label: 'Não definido', color: 'text-gray-400', bgColor: 'bg-gray-700' };
                 return (
-                  <li key={emp.id} className="flex items-center justify-between bg-escala-dark-background/50 p-2 rounded-md">
+                  <li 
+                    key={emp.id} 
+                    className="flex items-center justify-between bg-escala-dark-background/50 p-2 rounded-md cursor-pointer hover:bg-escala-secondary/50 transition-colors"
+                    onClick={() => onLocateEmployee(emp.id)}
+                    title={`Clique para localizar ${emp.nomeFuncional} na tabela`}
+                  >
                     <span className="font-medium">{emp.nomeFuncional}</span>
                     <span className={`font-semibold px-2 py-1 rounded-md text-xs ${statusInfo.bgColor} ${statusInfo.color}`}>
                       {statusInfo.label} {status && `(${status})`}

@@ -10,12 +10,15 @@ import DailyRoster from './components/DailyRoster';
 
 const App: React.FC = () => {
   const [year, setYear] = useState(new Date().getFullYear());
+  const [scrollKey, setScrollKey] = useState(0);
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     return today.getFullYear() === new Date().getFullYear() 
       ? today.toISOString().split('T')[0]
       : `${new Date().getFullYear()}-01-01`;
   });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [locatedEmployeeId, setLocatedEmployeeId] = useState<number | null>(null);
 
   const { 
     employees, 
@@ -37,10 +40,24 @@ const App: React.FC = () => {
       if (today.getFullYear() === year) {
         setSelectedDate(today.toISOString().split('T')[0]);
       } else {
-        setSelectedDate(`${year}-01-01`);
+        const firstDay = `${year}-01-01`;
+        setSelectedDate(firstDay);
       }
     }
   }, [year, selectedDate]);
+
+  const handleDateNavigation = (dateString: string) => {
+    setSelectedDate(dateString);
+    setScrollKey(k => k + 1);
+  };
+
+  const handleLocateEmployee = (id: number) => {
+    setLocatedEmployeeId(id);
+  };
+
+  const handleHighlightComplete = () => {
+    setLocatedEmployeeId(null);
+  };
 
   return (
     <div className="min-h-screen bg-escala-dark-background font-sans flex flex-col">
@@ -59,7 +76,10 @@ const App: React.FC = () => {
             employees={activeEmployees} 
             year={year}
             selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
+            onDateChange={handleDateNavigation}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onLocateEmployee={handleLocateEmployee}
           />
 
           {activeEmployees.length > 0 ? (
@@ -68,6 +88,9 @@ const App: React.FC = () => {
               employees={activeEmployees}
               onScheduleChange={updateSchedule}
               scrollToDate={selectedDate ? new Date(`${selectedDate}T00:00:00`) : null}
+              scrollKey={scrollKey}
+              locatedEmployeeId={locatedEmployeeId}
+              onHighlightComplete={handleHighlightComplete}
             />
           ) : (
             <div className="text-center py-16 bg-escala-dark-surface rounded-lg mt-6">

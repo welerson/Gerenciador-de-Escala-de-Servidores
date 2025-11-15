@@ -8,6 +8,9 @@ interface PersonnelTableProps {
   employees: Employee[];
   onScheduleChange: (employeeId: number, dayOfYear: number, status: StatusCode) => void;
   scrollToDate: Date | null;
+  scrollKey: number;
+  locatedEmployeeId: number | null;
+  onHighlightComplete: () => void;
 }
 
 interface EditingCell {
@@ -69,9 +72,11 @@ const StatusPicker: React.FC<StatusPickerProps> = ({ onSelect, onClose }) => {
 };
 
 
-const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onScheduleChange, scrollToDate }) => {
+const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onScheduleChange, scrollToDate, scrollKey, locatedEmployeeId, onHighlightComplete }) => {
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const rowRefs = useRef<Record<number, HTMLTableRowElement | null>>({});
+  const [highlightedRow, setHighlightedRow] = useState<number | null>(null);
   
   const dayHeaders = useMemo(() => getDayHeaders(year), [year]);
   
@@ -95,7 +100,26 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onSche
             });
         }
     }
-  }, [scrollToDate, year, employees]);
+  }, [scrollToDate, scrollKey, year]);
+
+  useEffect(() => {
+    if (locatedEmployeeId && rowRefs.current[locatedEmployeeId]) {
+        const rowElement = rowRefs.current[locatedEmployeeId];
+        rowElement?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+        });
+        setHighlightedRow(locatedEmployeeId);
+        const timer = setTimeout(() => {
+            setHighlightedRow(null);
+            if (onHighlightComplete) {
+                onHighlightComplete();
+            }
+        }, 2500);
+        return () => clearTimeout(timer);
+    }
+  }, [locatedEmployeeId, onHighlightComplete]);
+
 
   const handleCellClick = (employeeId: number, dayOfYear: number) => {
     setEditingCell({ employeeId, dayOfYear });
@@ -201,10 +225,16 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onSche
                     return acc;
                 }, {} as Record<StatusCode, number>);
 
+                const isHighlighted = highlightedRow === employee.id;
+
                 const employeeRow = (
-                    <tr key={employee.id} className="hover:bg-escala-dark-surface/80 transition-colors duration-150">
+                    <tr 
+                        key={employee.id} 
+                        ref={el => (rowRefs.current[employee.id] = el)}
+                        className={`transition-all duration-500 ${isHighlighted ? 'bg-blue-500/30 ring-2 ring-blue-400' : 'hover:bg-escala-dark-surface/80'}`}
+                     >
                         {employeeInfoHeaders.map(h => (
-                            <td key={`${employee.id}-${h.key}`} className={`p-3 border-b border-r border-gray-700 ${h.className} ${h.sticky ? 'bg-escala-dark-surface' : ''}`}>
+                            <td key={`${employee.id}-${h.key}`} className={`p-3 border-b border-r border-gray-700 transition-colors duration-500 ${h.className} ${h.sticky ? (isHighlighted ? 'bg-blue-500/20' : 'bg-escala-dark-surface') : ''}`}>
                                 {h.key === 'porteArma' || h.key === 'suspensao' ? (employee[h.key as keyof Employee] ? 'Sim' : 'Não') : (employee[h.key as keyof Employee] || 'N/A')}
                             </td>
                         ))}
@@ -234,7 +264,7 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onSche
                         })}
 
                         {summaryHeaders.map(h => (
-                            <td key={`summary-${employee.id}-${h.key}`} className="p-3 border-b border-r border-gray-700 font-semibold text-center sticky right-0 bg-escala-dark-surface">
+                            <td key={`summary-${employee.id}-${h.key}`} className={`p-3 border-b border-r border-gray-700 font-semibold text-center sticky right-0 transition-colors duration-500 ${isHighlighted ? 'bg-blue-500/20' : 'bg-escala-dark-surface'}`}>
                                 {summary[h.key as StatusCode]}
                             </td>
                         ))}
