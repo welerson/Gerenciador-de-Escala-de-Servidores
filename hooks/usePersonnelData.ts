@@ -189,24 +189,20 @@ const transformed5x2 = transformRosterData(rosterData5x2, '5 X 2');
 
 const allData = [...originalData, ...transformedDobra2, ...transformed5x2];
 
-// De-duplicate employees based on 'bm', giving precedence to newer data from rosters
-const employeeMap = new Map();
-allData.forEach(emp => {
-    const existing = employeeMap.get(emp.bm) || {};
-    employeeMap.set(emp.bm, { ...existing, ...emp });
-});
+// De-duplicate employees based on 'bm', giving precedence to the last-seen record
+// to ensure updates from rosters are applied, while preserving the overall order.
+const uniqueEmployeesReverse = [];
+const seenBms = new Set();
+for (let i = allData.length - 1; i >= 0; i--) {
+    const emp = allData[i];
+    if (!seenBms.has(emp.bm)) {
+        uniqueEmployeesReverse.push(emp);
+        seenBms.add(emp.bm);
+    }
+}
+const uniqueEmployees = uniqueEmployeesReverse.reverse();
 
-const uniqueEmployees = Array.from(employeeMap.values());
-
-// Sort and re-assign precedence to ensure it's sequential and consistent
-uniqueEmployees.sort((a, b) => {
-    if (a.group && !b.group) return -1;
-    if (!a.group && b.group) return 1;
-    if (a.group && b.group && a.group !== b.group) return a.group.localeCompare(b.group);
-    if(a.nomeFuncional && b.nomeFuncional) return a.nomeFuncional.localeCompare(b.nomeFuncional);
-    return 0;
-});
-
+// Assign precedence based on the final, ordered list.
 const initialEmployees: Omit<Employee, 'id' | 'schedule'>[] = uniqueEmployees.map((emp, index) => ({
     ...emp,
     precedencia: index + 1,
