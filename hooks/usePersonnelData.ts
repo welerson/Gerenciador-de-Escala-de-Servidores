@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import type { Employee, EmployeeData } from '../types';
 import { StatusCode } from '../constants';
 
-const PERSONNEL_STORAGE_KEY = 'personnel_data_v1';
+const PERSONNEL_STORAGE_KEY = 'personnel_data_v2';
 const SCHEDULE_STORAGE_KEY_PREFIX = 'schedule_data_v1';
 
 const isLeap = (year: number) => (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
