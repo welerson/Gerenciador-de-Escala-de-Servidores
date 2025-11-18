@@ -181,7 +181,7 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onSche
             
             return employees.map(employee => {
                 const groupHeader = employee.group && employee.group !== lastGroup ? (
-                    <tr className="bg-orange-600">
+                    <tr key={`group-header-${employee.group}`} className="bg-orange-600">
                         <td colSpan={totalColumns} className="p-2 font-bold text-white tracking-wider text-left text-lg">
                             {employee.group}
                         </td>
@@ -196,7 +196,7 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onSche
                     inViaturaGroup = !!employee.group?.toLowerCase().includes('dobra');
                     if (inViaturaGroup) {
                         specialHeader = (
-                             <tr className="bg-escala-secondary">
+                             <tr key={`special-header-${employee.id}`} className="bg-escala-secondary">
                                 <td colSpan={totalColumns} className="p-2 font-bold text-white tracking-wider text-left">
                                     VIATURAS
                                 </td>
@@ -209,7 +209,7 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onSche
                 }
 
                 const proprioHeader = !inViaturaGroup && employee.proprio !== lastProprio ? (
-                    <tr className="bg-escala-secondary">
+                    <tr key={`proprio-header-${employee.id}`} className="bg-escala-secondary">
                         <td colSpan={totalColumns} className="p-2 font-bold text-white tracking-wider text-left">
                             {employee.proprio}
                         </td>
