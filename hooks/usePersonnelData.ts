@@ -214,7 +214,7 @@ const getInitialPersonnel = (): Omit<Employee, 'schedule'>[] => {
         const item = window.localStorage.getItem(PERSONNEL_STORAGE_KEY);
         if (item) {
             const parsed = JSON.parse(item);
-            if (parsed.length > 0 && parsed[0].bm !== undefined) {
+            if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].bm !== undefined) {
                  return parsed.map((p: any) => ({ ...p, isActive: p.isActive !== undefined ? p.isActive : true }));
             }
         }
@@ -246,10 +246,12 @@ export const usePersonnelData = (year: number) => {
         const item = window.localStorage.getItem(key);
         if (item) {
             const parsed = JSON.parse(item);
-            if (typeof parsed['1'] === 'object' && parsed['1'] !== null) {
-              throw new Error("Incompatible schedule format found.");
+            if (parsed && typeof parsed === 'object') {
+              if (typeof parsed['1'] === 'object' && parsed['1'] !== null) {
+                throw new Error("Incompatible schedule format found.");
+              }
+              return parsed;
             }
-            return parsed;
         }
       } catch (e) {
         console.error(`Failed to load schedule for emp ${employeeId}, year ${year}. Regenerating.`, e);
