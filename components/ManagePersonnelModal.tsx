@@ -30,7 +30,7 @@ const ManagePersonnelModal: React.FC<ManagePersonnelModalProps> = ({
     onToggleEmployeeStatus 
 }) => {
   const [editingState, setEditingState] = useState<EditingState>(null);
-  const [filter, setFilter] = useState<FilterStatus>('all');
+  const [filter, setFilter] = useState<FilterStatus>('active');
 
   const handleSave = (data: EmployeeData) => {
     if (editingState?.mode === 'add') {
@@ -45,6 +45,16 @@ const ManagePersonnelModal: React.FC<ManagePersonnelModalProps> = ({
     setEditingState(null);
     onClose();
   }
+  
+  const handleArchiveToggle = (employee: Employee) => {
+    if (employee.isActive) {
+      if (window.confirm(`Tem certeza que deseja arquivar ${employee.nomeFuncional}? Seus dados e escala serão mantidos e o servidor poderá ser restaurado a qualquer momento.`)) {
+        onToggleEmployeeStatus(employee.id);
+      }
+    } else {
+      onToggleEmployeeStatus(employee.id);
+    }
+  };
 
   const filteredEmployees = useMemo(() => {
     if (filter === 'active') return employees.filter(e => e.isActive);
@@ -76,7 +86,7 @@ const ManagePersonnelModal: React.FC<ManagePersonnelModalProps> = ({
             <div className="flex items-center gap-2 p-1 bg-escala-dark-surface rounded-lg">
                 <FilterButton status="all" label="Todos" />
                 <FilterButton status="active" label="Ativos" />
-                <FilterButton status="inactive" label="Inativos" />
+                <FilterButton status="inactive" label="Arquivados" />
             </div>
             <button
               onClick={() => setEditingState({ mode: 'add'})}
@@ -101,17 +111,17 @@ const ManagePersonnelModal: React.FC<ManagePersonnelModalProps> = ({
                     <td className="p-3 font-medium">{employee.nomeFuncional}</td>
                     <td className="p-3 text-gray-400">{employee.cargo}</td>
                     <td className="p-3">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${employee.isActive ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-400'}`}>
-                            {employee.isActive ? 'Ativo' : 'Inativo'}
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${employee.isActive ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}`}>
+                            {employee.isActive ? 'Ativo' : 'Arquivado'}
                         </span>
                     </td>
                     <td className="p-3 text-right space-x-3">
                       <button onClick={() => setEditingState({ mode: 'edit', employee})} className="font-medium text-blue-400 hover:text-blue-300 transition-colors">Editar</button>
                       <button 
-                        onClick={() => onToggleEmployeeStatus(employee.id)} 
-                        className={`font-medium transition-colors ${employee.isActive ? 'text-red-400 hover:text-red-300' : 'text-green-400 hover:text-green-300'}`}
+                        onClick={() => handleArchiveToggle(employee)} 
+                        className={`font-medium transition-colors ${employee.isActive ? 'text-yellow-400 hover:text-yellow-300' : 'text-green-400 hover:text-green-300'}`}
                       >
-                        {employee.isActive ? 'Desativar' : 'Ativar'}
+                        {employee.isActive ? 'Arquivar' : 'Restaurar'}
                       </button>
                     </td>
                   </tr>
