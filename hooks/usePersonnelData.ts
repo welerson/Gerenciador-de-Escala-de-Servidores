@@ -246,11 +246,12 @@ export const usePersonnelData = (year: number) => {
         const item = window.localStorage.getItem(key);
         if (item) {
             const parsed = JSON.parse(item);
-            if (parsed && typeof parsed === 'object') {
-              if (typeof parsed['1'] === 'object' && parsed['1'] !== null) {
-                throw new Error("Incompatible schedule format found.");
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+              const keys = Object.keys(parsed);
+              // An empty schedule is valid. If not empty, check if keys look like dayOfYear numbers.
+              if (keys.length === 0 || !isNaN(parseInt(keys[0], 10))) {
+                return parsed;
               }
-              return parsed;
             }
         }
       } catch (e) {
