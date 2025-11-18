@@ -181,7 +181,7 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ year, employees, onSche
             
             return employees.map(employee => {
                 const groupHeader = employee.group && employee.group !== lastGroup ? (
-                    <tr key={`group-header-${employee.group}`} className="bg-orange-600">
+                    <tr key={`group-header-${employee.id}`} className="bg-orange-600">
                         <td colSpan={totalColumns} className="p-2 font-bold text-white tracking-wider text-left text-lg">
                             {employee.group}
                         </td>
